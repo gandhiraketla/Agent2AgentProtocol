@@ -45,9 +45,35 @@ Agent2AgentProtocol/
 ## 📦 Requirements
 - Python 3.10+
 - Install dependencies:
-
+### 1. Clone the Repository
+```bash
+git clone https://github.com/your-username/Agent2AgentProtocol.git
+cd Agent2AgentProtocol
 ```bash
 pip install -r requirements.txt
+```
+### 2. Create Virtual Environment (Optional but Recommended)
+```bash
+python -m venv venv
+# On Windows
+venv\Scripts\activate
+# On macOS/Linux
+source venv/bin/activate
+```
+### 3. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+### 4. Configure Environment Variables
+Create a `.env` file in the `backend` directory with the following content:
+```
+DEEPSEEK_API_KEY=
+OPEN_API_KEY=
+GOOGLE_API_KEY=
+LANGCHAIN_TRACING_V2=false
+LANGSMITH_PROJECT=A2A
+PERPLEXITY_API_KEY=
+LANGSMITH_API_KEY=
 ```
 
 ## ▶️ Run Agents
