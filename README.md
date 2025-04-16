@@ -8,8 +8,6 @@ This project demonstrates multi-agent collaboration across organizations using t
 Agent2AgentProtocol/
 ├── backend/
 │   ├── host/               # Host Agent using A2A
-│   │   ├── main.py         # CLI for testing
-│   │   ├── server.py       # FastAPI wrapper for Host Agent
 │   │   ├── host_agent.py   # Core host logic (delegation, routing)
 │   │   └── remote_agent_connection.py
 │   ├── agents/
@@ -29,7 +27,7 @@ Agent2AgentProtocol/
 - Loads agent cards from remote agent URLs
 - Orchestrates communication between agents using ADK runner
 
-### 🔸 NewsAgent (via LangGraph + DeepSeek/OpenAI)
+### 🔸 NewsAgent (via LangGraph + OpenAI)
 - Uses LangGraph with a ReAct agent
 - Integrates tool: `get_latest_news(topic)`
 - Returns structured response format
@@ -57,13 +55,13 @@ pip install -r requirements.txt
 Start NewsAgent:
 ```bash
 cd backend/agents/news
-python -m fastapi_server  # Exposes on port 10010
+python server.py
 ```
 
 Start WeatherAgent:
 ```bash
 cd backend/agents/weather
-python -m fastapi_server  # Exposes on port 10011
+python server.py
 ```
 
 Start HostAgent:
@@ -72,11 +70,9 @@ cd backend/host
 python server.py  # Exposes FastAPI on port 11000
 ```
 
-## 🧪 Test via CURL
+## 🧪 Test via HTML UI
 ```bash
-curl -X POST http://localhost:11000/query \
-  -H "Content-Type: application/json" \
-  -d '{"query": "Latest news on AI"}'
+Go to /frontend/ui folder and open ui.html in browser.
 ```
 
 ## 🧑‍🏫 Features Demonstrated
@@ -85,16 +81,6 @@ curl -X POST http://localhost:11000/query \
 - ✅ FastAPI wrapper for frontend integration (e.g., Streamlit)
 - ✅ Both streaming and non-streaming support
 
-## 📸 Presentation Assets
-- Included Google A2A diagrams, architecture visuals, and YouTube thumbnail under `/assets`
-
-## 🙌 Acknowledgements
-- Google ADK Team
-- LangGraph / LangChain
-- DeepSeek / OpenAI
-- CrewAI (for showcasing multi-framework compatibility)
-
----
 
 _This is a learning and demo project. PRs welcome!_
 
