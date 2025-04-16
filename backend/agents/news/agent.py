@@ -22,12 +22,12 @@ root_dir = Path(__file__).resolve().parents[3]
 dotenv_path = root_dir / ".env"
 load_dotenv(dotenv_path=dotenv_path)
 
-api_key = os.getenv("DEEPSEEK_API_KEY")
+api_key = os.getenv("OPEN_API_KEY")
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGSMITH_API_KEY")
 os.environ["LANGCHAIN_PROJECT"] = "Agent2AgentProtocol"
 if not api_key:
-    raise EnvironmentError(f"❌ DEEPSEEK_API_KEY not found in {dotenv_path}")
+    raise EnvironmentError(f"❌ OPEN_API_KEY not found in {dotenv_path}")
 else:
     print(f"✅ OPEN_API_KEY loaded from {dotenv_path}")
 
@@ -40,9 +40,11 @@ async def get_latest_news(topic: str = "technology") -> dict:
     """Fetches the latest news for a given topic. Returns hardcoded response for now."""
     print(f"📰 Tool called: get_latest_news with topic='{topic}'")
     query_api = QueryAPI()
-    #result = query_api.process_query(topic)
-    result="This is hard coded reponse, return appropriate result"
+    result = query_api.process_query(topic)
     print(f"📰 News Tool result: {result}")
+    #result = result[:5000]
+    #result="This is hard coded reponse, return appropriate result"
+    print(f"📰 Truncated News Tool result: {result}")
     return result
 
 # 🧾 Format for response returned by the agent
@@ -55,6 +57,7 @@ class NewsAgent:
     SYSTEM_INSTRUCTION = (
         "You are a news assistant. Your job is to use the 'get_latest_news' tool "
         "to answer user questions about current news on any topic. "
+        "You MUST use ONLY the 'get_latest_news' tool response to answer user questions. "
         "If the user doesn't specify a topic, default to 'technology'. "
         "Set status to 'completed' when you successfully return a headline. "
         "Set status to 'input_required' if user needs to clarify topic. "
@@ -63,12 +66,12 @@ class NewsAgent:
 
     def __init__(self):
         print("⚙️ Creating LangGraph ReAct agent for NewsAgent...")
-        self.model = ChatDeepSeek(model="deepseek-chat", api_key=api_key)
-        #self.model = ChatOpenAI(
-        #            model="gpt-4",  # or "gpt-3.5-turbo"
-         #           temperature=0.7,
-          #          api_key=api_key
-           #         )
+        #self.model = ChatDeepSeek(model="deepseek-chat", api_key=api_key)
+        self.model = ChatOpenAI(
+                    model="gpt-4",  # or "gpt-3.5-turbo"
+                    temperature=0.7,
+                    api_key=api_key
+                  )
         self.tools = [get_latest_news]
 
         self.graph = create_react_agent(
@@ -83,7 +86,11 @@ class NewsAgent:
         print(f"🧠 invoke() called with query='{query}' and session_id='{session_id}'")
         config = {"configurable": {"thread_id": session_id}}
         await self.graph.ainvoke({"messages": [("user", query)]}, config)
-        return self.get_agent_response(config)
+        agent_response = self.get_agent_response(config)
+        print(f"📡 Agent response: {agent_response}")
+        #agent_response=agent_response[:50]
+        #print(f"📡 Truncated Agent response: {agent_response}")
+        return agent_response
 
     async def stream(self, query: str, session_id: str) -> AsyncIterable[Dict[str, Any]]:
         print(f"📡 stream() called with query='{query}' and session_id='{session_id}'")

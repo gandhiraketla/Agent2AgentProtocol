@@ -34,6 +34,7 @@ class RemoteAgentConnections:
       task_callback: TaskUpdateCallback | None,
   ) -> Task | None:
     if self.card.capabilities.streaming:
+      print("Streaming")
       task = None
       if task_callback:
         task_callback(Task(
@@ -63,35 +64,47 @@ class RemoteAgentConnections:
           task = task_callback(response.result)
         if hasattr(response.result, 'final') and response.result.final:
           break
-      return task
-    else: # Non-streaming
-      print("Non-streaming")
-      response = await self.agent_client.send_task(request.model_dump())
-      #print(response)
-      merge_metadata(response.result, request)
-      # For task status updates, we need to propagate metadata and provide
-      # a unique message id.
-      print(response)
-      if (hasattr(response.result, 'status') and
-          hasattr(response.result.status, 'message') and
-          response.result.status.message):
-        print("Inside if condition")
-        merge_metadata(response.result.status.message, request.message)
-        m = response.result.status.message
-        print(m)
-        if not m.metadata:
-          m.metadata = {}
-        if 'message_id' in m.metadata:
-          m.metadata['last_message_id'] = m.metadata['message_id']
-        m.metadata['message_id'] = str(uuid.uuid4())
-      print(task_callback) 
-      print(response.result) 
-      if task_callback:
-        print("Invoking Task Call back")
-        task_callback(response.result)
-      print("Sending response")
-      print(response.result)
       return response.result
+    else: # Non-streaming
+      try:
+        print("🚀 Non-streaming task initiated")
+        response = await self.agent_client.send_task(request.model_dump())
+        print("✅ Raw response:", response)
+
+        if not response or not response.result:
+            print("❌ No result in response")
+            return {
+                "error": "Empty result received from agent.",
+                "status": "failed",
+                "agent": self.card.name,
+            }
+
+        result = response.result
+
+        # Safe metadata merge
+        if hasattr(result, 'status') and result.status.message:
+            print("📦 Merging metadata")
+            merge_metadata(result.status.message, request.message)
+            m = result.status.message
+            m.metadata = m.metadata or {}
+            if 'message_id' in m.metadata:
+                m.metadata['last_message_id'] = m.metadata['message_id']
+            m.metadata['message_id'] = str(uuid.uuid4())
+
+        if task_callback:
+            print("🔄 Invoking task callback")
+            task_callback(result)
+
+        print("✅ Task completed successfully")
+        return result
+
+      except Exception as e:
+        print(f"❌ Exception in send_task: {str(e)}")
+        return {
+            "error": str(e),
+            "status": "failed",
+            "agent": self.card.name,
+        }
 
 def merge_metadata(target, source):
   if not hasattr(target, 'metadata') or not hasattr(source, 'metadata'):

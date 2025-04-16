@@ -1,7 +1,7 @@
 import os
 import sys
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -11,6 +11,7 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 import uuid
+import json
 from host_agent import HostAgent
 
 # 🔄 Ensure root path is in sys.path
@@ -95,6 +96,75 @@ async def query_handler(request: QueryRequest):
         print(f"❌ Error in FastAPI: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
 
+# New WebSocket endpoint
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """Handle WebSocket connections for streaming agent responses."""
+    await websocket.accept()
+    print("WebSocket connection established")
+    
+    try:
+        while True:
+            # Wait for messages from the client
+            data = await websocket.receive_text()
+            try:
+                data_json = json.loads(data)
+                user_query = data_json.get("query", "")
+                
+                if not user_query:
+                    await websocket.send_json({"error": "Missing 'query'"})
+                    continue
+                
+                # Send a message indicating processing has started
+                await websocket.send_json({"status": "processing", "message": "Processing your query..."})
+                
+                # Create the query content
+                content = Content(role="user", parts=[Part(text=user_query)])
+                
+                # Stream responses back to the client
+                response_parts = []
+                async for event in runner.run_async(user_id=USER_ID, session_id=SESSION_ID, new_message=content):
+                    print("WebSocket Event:", type(event))
+                    
+                    if hasattr(event, "content") and event.content:
+                        for part in event.content.parts:
+                            print(f"WebSocket response part: {part}")
+                            print(f"WebSocket response part TEXT: {part.text}")
+                            if part.text:
+                                chunk_text = part.text
+                                print(f"WebSocket response chunk: {chunk_text}")
+                                
+                                # Send each part of the response as it becomes available
+                                await websocket.send_json({
+                                    "status": "chunk", 
+                                    "chunk": chunk_text,
+                                    "complete": False
+                                })
+                                response_parts.append(chunk_text)
+                
+                # Send a complete message with the full response
+                full_response = "".join(response_parts) if response_parts else "⚠️ No response from agent."
+                await websocket.send_json({
+                    "status": "complete",
+                    "response": full_response,
+                    "complete": True
+                })
+                
+            except json.JSONDecodeError:
+                await websocket.send_json({"error": "Invalid JSON"})
+            except Exception as e:
+                print(f"❌ Error in agent processing: {e}")
+                await websocket.send_json({
+                    "status": "error",
+                    "error": str(e),
+                    "complete": True
+                })
+    
+    except WebSocketDisconnect:
+        print("WebSocket disconnected")
+    except Exception as e:
+        print(f"❌ Unexpected WebSocket error: {e}")
+
 # Add this block to run via `python server.py`
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080,timeout_keep_alive=50000)
+    uvicorn.run(app, host="0.0.0.0", port=8080, timeout_keep_alive=50000)
