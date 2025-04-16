@@ -1,4 +1,5 @@
 from langchain_core.tools import tool
+from langchain_openai import ChatOpenAI
 from langchain_deepseek import ChatDeepSeek
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
@@ -9,8 +10,12 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 import time
-
-print("🚀 Initializing NewsAgent...")
+import sys
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+from api.news_api import QueryAPI
+print("Initializing NewsAgent...")
 
 # Load shared .env from root
 root_dir = Path(__file__).resolve().parents[3]
@@ -24,21 +29,21 @@ os.environ["LANGCHAIN_PROJECT"] = "Agent2AgentProtocol"
 if not api_key:
     raise EnvironmentError(f"❌ DEEPSEEK_API_KEY not found in {dotenv_path}")
 else:
-    print(f"✅ DEEPSEEK_API_KEY loaded from {dotenv_path}")
+    print(f"✅ OPEN_API_KEY loaded from {dotenv_path}")
 
 # Memory for threading
 memory = MemorySaver()
 
 # 🛠️ Tool - for now, returns a hardcoded news string
 @tool
-def get_latest_news(topic: str = "technology") -> dict:
+async def get_latest_news(topic: str = "technology") -> dict:
     """Fetches the latest news for a given topic. Returns hardcoded response for now."""
     print(f"📰 Tool called: get_latest_news with topic='{topic}'")
-    return {
-        "topic": topic,
-        "headline": f"Breaking: Big News in {topic.title()}!",
-        "summary": f"This is a hardcoded update for '{topic}'. Real news API integration coming soon."
-    }
+    query_api = QueryAPI()
+    #result = query_api.process_query(topic)
+    result="This is hard coded reponse, return appropriate result"
+    print(f"📰 News Tool result: {result}")
+    return result
 
 # 🧾 Format for response returned by the agent
 class ResponseFormat(BaseModel):
@@ -59,6 +64,11 @@ class NewsAgent:
     def __init__(self):
         print("⚙️ Creating LangGraph ReAct agent for NewsAgent...")
         self.model = ChatDeepSeek(model="deepseek-chat", api_key=api_key)
+        #self.model = ChatOpenAI(
+        #            model="gpt-4",  # or "gpt-3.5-turbo"
+         #           temperature=0.7,
+          #          api_key=api_key
+           #         )
         self.tools = [get_latest_news]
 
         self.graph = create_react_agent(

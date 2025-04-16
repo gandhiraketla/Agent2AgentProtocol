@@ -88,7 +88,7 @@ class RemoteAgentConnections:
       print(response.result) 
       if task_callback:
         print("Invoking Task Call back")
-        #task_callback(response.result)
+        task_callback(response.result)
       print("Sending response")
       print(response.result)
       return response.result

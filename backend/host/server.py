@@ -97,4 +97,4 @@ async def query_handler(request: QueryRequest):
 
 # Add this block to run via `python server.py`
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8080,timeout_keep_alive=50000)
