@@ -75,12 +75,6 @@ python server.py  # Exposes FastAPI on port 11000
 Go to /frontend/ui folder and open ui.html in browser.
 ```
 
-## 🧑‍🏫 Features Demonstrated
-- ✅ Dynamic capability discovery using Agent Cards
-- ✅ Modular AI agents using LangGraph + tools
-- ✅ FastAPI wrapper for frontend integration (e.g., Streamlit)
-- ✅ Both streaming and non-streaming support
-
 
 _This is a learning and demo project. PRs welcome!_
 
